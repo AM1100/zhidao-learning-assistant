@@ -123,3 +123,8 @@ python3 -m unittest discover -v
 - `plugins/study_session.py`：视频服务独立会话与受限 SSO。
 - `plugins/README.md`：协议来源、范围和扩展约定。
 - `导出已加载课程.user.js`：备用手动导出脚本，依赖页面字段，未对所有页面结构验证。
+
+
+## 软件界面截图
+
+![知到学习助手软件界面](software.png)
