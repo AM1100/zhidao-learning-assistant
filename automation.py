@@ -6,6 +6,7 @@ import threading
 import time
 from pathlib import Path
 from urllib.parse import urlsplit
+from browser_runtime import detect_default_browser, launch_default, open_default
 
 
 class AutomationError(ValueError):
@@ -794,14 +795,24 @@ class AutomationController:
             raise AutomationError("当前只支持共享视频课和智慧慕课的浏览器自动模式。")
         if not cookie:
             raise AutomationError("请先暂存自己的平台 Cookie。")
+        browser_info = detect_default_browser()
+        if not browser_info.controllable:
+            try:
+                open_default(course["url"])
+            except OSError:
+                raise AutomationError("无法请求系统默认浏览器打开课程，请检查系统的默认浏览器设置。") from None
+            with self.lock:
+                self.status = {"state": "manual", "course": course["name"], "completed": 0,
+                               "message": f"已请求系统默认浏览器（{browser_info.name}）打开课程。当前浏览器无法由本程序自动控制，请在原页面登录并手动播放、切课和答题；暂停/继续/停止不可用。"}
+            return self.snapshot()
         if auto_answer and not ai:
             raise AutomationError("开启 AI 自动弹题前，请先配置 AI 接口。")
         if importlib.util.find_spec("playwright") is None:
             raise AutomationError("当前 Python 环境缺少 Playwright。请停止旧服务，在程序目录执行 python3 start.py（Windows：py start.py），自动安装依赖并重新启动；随后重新填写会话配置。")
         self.stop.clear(); self.pause.clear(); self.resume_requested.clear()
         with self.lock:
-            self.status = {"state":"starting", "message":"正在建立独立登录会话并打开受控 Chrome。", "course":course["name"], "completed":0}
-        self.thread = threading.Thread(target=self.worker, args=(dict(course), cookie, dict(ai), auto_answer, start_unlearned), daemon=True)
+            self.status = {"state":"starting", "message":f"正在建立独立登录会话并打开系统默认浏览器（{browser_info.name}）。", "course":course["name"], "completed":0}
+        self.thread = threading.Thread(target=self.worker, args=(dict(course), cookie, dict(ai), auto_answer, start_unlearned, browser_info), daemon=True)
         self.thread.start()
         return self.snapshot()
 
@@ -823,7 +834,7 @@ class AutomationController:
             raise AutomationError("未知自动学习操作。")
         return self.snapshot()
 
-    def worker(self, course, cookie, ai, auto_answer, start_unlearned):
+    def worker(self, course, cookie, ai, auto_answer, start_unlearned, browser_info):
         browser = None
         context = None
         try:
@@ -839,7 +850,10 @@ class AutomationController:
                 if c.domain == "zhihuishu.com" or c.domain.endswith(".zhihuishu.com"):
                     cookies.append({"name":c.name,"value":c.value,"domain":c.domain,"path":c.path,"secure":c.secure})
             with sync_playwright() as p:
-                browser = p.chromium.launch(channel="chrome", headless=False)
+                try:
+                    browser = launch_default(p, browser_info)
+                except Exception:
+                    raise AutomationError(f"无法启动系统默认浏览器（{browser_info.name}）的独立控制窗口。请检查该浏览器是否正常安装、是否受系统策略限制；程序不会改用 Chrome 或其他浏览器。") from None
                 if self.stop.is_set():
                     browser.close(); browser = None
                     return
@@ -867,7 +881,7 @@ class AutomationController:
         except AutomationError as error:
             self.report("error", str(error))
         except Exception:
-            self.report("error", "自动学习启动或运行失败。请确认已安装 Chrome、依赖齐全且平台登录有效；可重试或在原平台手动学习。")
+            self.report("error", "自动学习启动或运行失败。请确认系统默认浏览器可用、依赖齐全且平台登录有效；可重试或在原平台手动学习。")
         finally:
             # No browser profile, cookie jar, API key or raw error/URL is saved.
             ai.clear(); cookie = ""
