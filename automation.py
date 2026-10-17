@@ -797,7 +797,7 @@ class AutomationController:
         if auto_answer and not ai:
             raise AutomationError("开启 AI 自动弹题前，请先配置 AI 接口。")
         if importlib.util.find_spec("playwright") is None:
-            raise AutomationError("缺少浏览器运行依赖，请安装 requirements.txt 并重启程序。")
+            raise AutomationError("当前 Python 环境缺少 Playwright。请停止旧服务，在程序目录执行 python3 start.py（Windows：py start.py），自动安装依赖并重新启动；随后重新填写会话配置。")
         self.stop.clear(); self.pause.clear(); self.resume_requested.clear()
         with self.lock:
             self.status = {"state":"starting", "message":"正在建立独立登录会话并打开受控 Chrome。", "course":course["name"], "completed":0}

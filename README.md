@@ -7,11 +7,27 @@
 需要 Python 3.10 或更高版本，以及已安装的 Google Chrome。在此文件夹打开终端：
 
 ```bash
-python3 -m pip install -r requirements.txt
-python3 server.py
+python3 start.py
 ```
 
-Windows 可把 `python3` 换为 `py`。打开 <http://127.0.0.1:8765>，退出用 Ctrl+C。端口占用时使用 `python3 server.py --port 8766`。
+Windows 使用 `py start.py`。Linux 也可执行 `bash 启动.sh`。启动器会创建本目录的 `.venv`，缺少依赖时自动安装 `requirements.txt`，然后始终使用该环境启动服务。首次安装需要联网；已安装依赖时不会重复安装。若系统安装了 uv，将优先使用它创建环境和安装依赖。
+
+打开 <http://127.0.0.1:8765>，退出用 Ctrl+C。端口占用时使用 `python3 start.py --port 8766`。
+
+### 提示“缺少浏览器运行依赖”
+
+表示**当前运行服务的 Python 找不到 Playwright**，此时还未尝试启动 Chrome。安装依赖与启动服务使用不同 Python 环境，也会出现这条提示。
+
+先在原终端按 Ctrl+C 停止旧服务，再执行 `python3 start.py`。Ubuntu/Debian 若提示缺少 `ensurepip`，先安装对应版本的 venv 包（例如 `sudo apt install python3-venv`；错误若指定 `python3.14-venv`，则安装该包），或安装 uv 后重试。重启会清空内存中的 Cookie 和 AI 配置，需要重新填写。
+
+已有虚拟环境的用户也可手动执行：
+
+```bash
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python server.py
+```
+
+Windows 对应解释器为 `.venv\Scripts\python.exe`。程序使用已安装的 Google Chrome（`channel="chrome"`），仅执行 `playwright install chromium` 不能替代 Chrome 安装。
 
 ## 读取自己的课程
 
