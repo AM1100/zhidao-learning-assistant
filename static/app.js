@@ -82,7 +82,7 @@ $('importFile').onchange = async event => {
   const file = event.target.files[0]; if (!file) return;
   try { if(file.size > 1900000) throw Error('文件请小于 1.9 MB'); const result = await api('import',{data:JSON.parse(await file.text())}); const merged = new Map(source === 'demo' ? [] : courses.map(c => [c.id,c])); for(const course of result.courses) { const old = merged.get(course.id); if(old && !course.chapters.length) course.chapters = old.chapters; merged.set(course.id,course); } setCourses([...merged.values()],'import'); toast('已导入 ' + result.courses.length + ' 门课程'); } catch(e) { toast(e.message); } finally { event.target.value = ''; }
 };
-const autoLabels = {idle:'未启动', starting:'准备播放', running:'运行中', answering:'AI 处理中', waiting_user:'等待人工处理', paused:'已暂停', stopping:'停止中', stopped:'已停止', error:'运行失败'};
+const autoLabels = {idle:'未启动', manual:'手动播放', starting:'准备播放', running:'运行中', answering:'AI 处理中', waiting_user:'等待人工处理', paused:'已暂停', stopping:'停止中', stopped:'已停止', error:'运行失败'};
 let autoPolling = false;
 function showAutomation(state) {
   $('autoBadge').textContent = autoLabels[state.state] || state.state;
@@ -95,7 +95,7 @@ function showAutomation(state) {
   $('autoStop').disabled = !active;
   const seconds = Number(state.current_seconds || 0), duration = Number(state.duration_seconds || 0);
   const format = value => Math.floor(value / 60) + ':' + String(value % 60).padStart(2,'0');
-  $('autoProgress').textContent = '本次检测到播放结束 ' + (state.completed || 0) + ' 节' + (duration ? ' · 当前播放 ' + format(seconds) + ' / ' + format(duration) : '');
+  $('autoProgress').textContent = state.state === 'manual' ? '当前为手动播放，程序不监控播放进度。' : '本次检测到播放结束 ' + (state.completed || 0) + ' 节' + (duration ? ' · 当前播放 ' + format(seconds) + ' / ' + format(duration) : '');
 }
 async function pollAutomation() {
   if(autoPolling || document.hidden) return;
